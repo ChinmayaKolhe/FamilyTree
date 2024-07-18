@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Hierarchical List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        form {
+            margin: 20px 0;
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        #treeContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        ul {
+            list-style-type: none;
+            position: relative;
+            padding-left: 20px;
+        }
+        ul ul::before {
+            content: '';
+            border-left: 1px solid #ccc;
+            position: absolute;
+            top: 0;
+            left: -10px;
+            height: 100%;
+        }
+        li {
+            margin: 10px 0;
+            padding-left: 10px;
+            position: relative;
+        }
+        li::before {
+            content: '';
+            border-top: 1px solid #ccc;
+            position: absolute;
+            top: 15px;
+            left: -10px;
+            width: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <form id="rootForm" action="submit_node.php" method="POST">
+            <div class="form-group">
+                <label for="rootName">Root Node Name:</label>
+                <input type="text" id="rootName" name="rootName" required value="Khushal" disabled>
+            </div>
+            <button type="submit" disabled>Add Root Node</button>
+        </form>
+
+        <form id="childForm" action="submit_node.php" method="POST">
+            <div class="form-group">
+                <label for="parentName">Parent Node Name:</label>
+                <input type="text" id="parentName" name="parentName" required>
+            </div>
+            <div id="childFields">
+                <div class="form-group">
+                    <label for="childName">Child Node Name:</label>
+                    <input type="text" id="childName" name="childNames[]" required>
+                </div>
+            </div>
+            <button type="button" id="addChildField">Add Another Child</button>
+            <button type="submit">Add Child Node</button>
+        </form>
+    </div>
+
+    <div id="treeContainer">
+        <ul id="treeRoot"></ul>
+    </div>
+
+    <script>
+        const childForm = document.getElementById('childForm');
+        const treeRoot = document.getElementById('treeRoot');
+        const childFields = document.getElementById('childFields');
+        const addChildFieldButton = document.getElementById('addChildField');
+
+        addChildFieldButton.addEventListener('click', () => {
+            const newField = document.createElement('div');
+            newField.className = 'form-group';
+            newField.innerHTML = `
+                <label>Child Node Name:</label>
+                <input type="text" name="childNames[]" required>
+            `;
+            childFields.appendChild(newField);
+        });
+
+        function loadTree() {
+            fetch('fetch_tree.php')
+                .then(response => response.json())
+                .then(data => {
+                    const rootNodes = data.filter(node => node.rootName);
+                    if (rootNodes.length > 0) {
+                        treeRoot.innerHTML = '';
+                        rootNodes.forEach(rootNode => {
+                            const rootElement = document.createElement('li');
+                            rootElement.textContent = rootNode.rootName;
+                            rootElement.innerHTML += '<ul></ul>';
+                            treeRoot.appendChild(rootElement);
+                            addChildNodes(rootElement, rootNode.rootName, data);
+                        });
+                    }
+                });
+        }
+
+        function addChildNodes(parentElement, parentName, data) {
+            const childNodes = data.filter(node => node.parentName === parentName);
+            const childList = parentElement.querySelector('ul');
+            childNodes.forEach(childNode => {
+                const childElement = document.createElement('li');
+                childElement.textContent = childNode.childName;
+                childElement.innerHTML += '<ul></ul>';
+                childList.appendChild(childElement);
+                addChildNodes(childElement, childNode.childName, data);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTree();
+        });
+    </script>
+</body>
+</html>
